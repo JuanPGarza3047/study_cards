@@ -3,392 +3,623 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Tarjetas de Estudio</title>
+<title>Quiz — Guía de Tránsito (modo oscuro)</title>
+<meta name="description" content="Importa tu nota del iPhone con subrayados y practica tipo quiz." />
 <style>
+  /* MODO OSCURO FIJO */
   :root{
-    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4;
-    --glass: rgba(255,255,255,0.03);
+    --bg:#071021;
+    --panel:#0b1624;
+    --card:#0f2430;
+    --muted:#a9b7c0;
+    --accent:#06b6d4;
+    --correct:#15803d; /* verde */
+    --wrong:#dc2626;   /* rojo */
+    --border: rgba(255,255,255,0.04);
+    --glass: rgba(255,255,255,0.02);
     color-scheme: dark;
+    font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, system-ui, Arial; background:linear-gradient(180deg,#071023 0%, #071729 100%); color:#e6eef6}
-  .app{max-width:980px;margin:18px auto;padding:16px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#04121b 0%, #071021 100%);color:#e6f0f6}
+  .wrap{max-width:1100px;margin:18px auto;padding:14px}
+  header{display:flex;gap:12px;align-items:center}
   header h1{font-size:20px;margin:0}
-  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  input[type=text], textarea, select{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px;border-radius:8px;min-width:160px}
-  button{background:linear-gradient(90deg,var(--accent),#7ce5e8);border:none;padding:8px 12px;border-radius:8px;color:#04202a;font-weight:600;cursor:pointer}
-  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-  main{display:grid;grid-template-columns:1fr 360px;gap:12px}
-  @media(max-width:880px){main{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),#081422);border-radius:12px;padding:12px;border:1px solid var(--border);box-shadow:0 8px 28px rgba(2,6,23,0.6)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  button{background:linear-gradient(90deg,var(--accent),#4ddce7);border:none;padding:8px 12px;border-radius:9px;color:#042022;font-weight:700;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 420px;gap:12px;margin-top:12px}
+  @media(max-width:960px){ .grid{grid-template-columns:1fr} }
   .left{display:flex;flex-direction:column;gap:12px}
-  .form-grid{display:grid;grid-template-columns:1fr 140px;gap:8px}
+  textarea,input,select{background:var(--glass);border:1px solid var(--border);color:var(--muted);padding:10px;border-radius:8px;width:100%;min-height:40px}
+  .import-area textarea{min-height:160px;resize:vertical}
+  .hint{color:var(--muted);font-size:13px}
   .list{max-height:520px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
-  .card-item{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;flex-direction:column;gap:6px}
-  .card-item small{color:var(--muted);font-size:12px}
-  .study-area{height:320px;display:flex;align-items:center;justify-content:center}
-  .flash{width:100%;max-width:760px;height:320px;border-radius:12px;background:linear-gradient(180deg,#071827,#042136);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;position:relative;text-align:center;cursor:pointer}
-  .flash .q{font-size:18px;margin-bottom:8px}
-  .flash .a{font-size:16px;color:var(--muted);margin-top:6px;display:none}
-  .flash.flipped .a{display:block}
-  .flash.flipped .q{opacity:0.35}
-  .meta{position:absolute;right:12px;top:12px;color:var(--muted);font-size:13px}
-  .tiny{font-size:13px;color:var(--muted)}
-  .bulk{min-height:100px}
-  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .badge{background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:999px;color:var(--muted);font-weight:600}
-  .search{flex:1}
-  .hint{font-size:13px;color:var(--muted)}
-  .footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
-  .smallbtn{padding:6px 8px;border-radius:8px;font-size:13px}
-  .known{border-left:4px solid #10b981}
-  .unknown{border-left:4px solid #ef4444}
-  .empty{color:var(--muted);padding:14px;border-radius:10px;background:rgba(255,255,255,0.02)}
+  .qitem{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:10px;border:1px solid var(--border)}
+  .qhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .qhead strong{color:#eaf8ff}
+  .options{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  label.opt{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+  label.opt input[type="radio"]{width:18px;height:18px}
+  .opt-text{flex:1}
+  .opt-correct{background:linear-gradient(90deg, rgba(21,128,61,0.12), rgba(21,128,61,0.05));border-color: rgba(21,128,61,0.25)}
+  .opt-wrong{background:linear-gradient(90deg, rgba(220,38,38,0.12), rgba(220,38,38,0.05));border-color: rgba(220,38,38,0.25)}
+  .meta{font-size:13px;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .right{display:flex;flex-direction:column;gap:12px}
+  .score{font-size:16px;font-weight:700;color:#e6f7f8}
+  .small{font-size:13px;color:var(--muted)}
+  .controls-bottom{display:flex;gap:8px;flex-wrap:wrap}
+  .result-badge{display:inline-block;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--muted);font-weight:600}
+  .center{display:flex;align-items:center;justify-content:center}
+  /* scroll */
+  .list::-webkit-scrollbar{height:8px;width:8px}
+  .list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.03);border-radius:999px}
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="card">
-    <div style="display:flex;flex-direction:column">
-      <h1>Tarjetas de Estudio — Guía de Examen</h1>
-      <small class="hint">Crea, importa (pega tu guía), estudia y guarda en tu dispositivo</small>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Quiz — Guía de Tránsito (Modo oscuro)</h1>
+      <div class="hint">Pega tu nota del iPhone (con subrayados). El sistema detecta la opción subrayada como correcta.</div>
     </div>
-    <div style="margin-left:auto" class="controls">
-      <button id="toStudy">Modo Estudio</button>
-      <button id="toManage" class="ghost">Administrar</button>
-      <button id="exportBtn" class="smallbtn ghost">Exportar JSON</button>
-      <button id="importBtn" class="smallbtn ghost">Importar JSON</button>
+
+    <div class="controls">
+      <button id="importBtn">Importar desde nota</button>
+      <button id="clearBtn" class="ghost">Borrar preguntas</button>
+      <button id="exportBtn" class="ghost">Exportar JSON</button>
+      <button id="shuffleBtn" class="ghost">Mezclar</button>
     </div>
   </header>
 
-  <main>
+  <div class="grid">
     <section class="left">
-      <div class="card">
-        <div class="form-grid">
-          <input id="qInput" type="text" placeholder="Pregunta (ej: 1.- ¿Cuál...?)" />
-          <input id="catInput" type="text" placeholder="Categoría (opcional)" />
-          <textarea id="aInput" rows="2" placeholder="Respuesta / opciones (ej: a) 30 km/hr)"></textarea>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button id="addBtn">Añadir tarjeta</button>
-            <button id="clearForm" class="ghost">Limpiar</button>
-          </div>
-        </div>
-        <div style="margin-top:10px" class="hint">
-          También puedes pegar toda la guía en el recuadro de abajo y usar "Importar guía" para crear tarjetas automáticamente.
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex;gap:8px;align-items:center">
-          <strong>Importar en bloque (pega la guía aquí)</strong>
-          <div style="margin-left:auto" class="tiny">Detecta líneas numeradas</div>
-        </div>
-        <textarea id="bulkInput" class="bulk" placeholder="Pega aquí la guía (todo el texto que compartiste)"></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="bulkParse">Importar guía</button>
-          <button id="bulkParseKeepAns" class="ghost">Importar (poner opciones como respuesta)</button>
-          <button id="clearBulk" class="ghost">Borrar</button>
-        </div>
-        <div class="hint" style="margin-top:8px">Nota: tras importar revisa categorías y respuestas.</div>
-      </div>
-
-      <div class="card">
+      <div class="card import-area">
         <div class="toolbar">
-          <input id="search" class="search" type="text" placeholder="Buscar..." />
-          <select id="filterCat">
-            <option value="">Todas las categorías</option>
-          </select>
-          <button id="clearAll" class="ghost">Borrar todo</button>
+          <div class="meta">Paso 1 — Pega aquí la nota (desde la app Notas: seleccionar todo → copiar → pegar)</div>
         </div>
-        <div class="list" id="cardsList"></div>
+        <textarea id="pasteArea" placeholder="Pega la nota aquí (si contiene subrayados, se detectarán automáticamente)"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="parseBtn">Crear preguntas (detectar subrayado)</button>
+          <button id="parseBtnLoose" class="ghost">Crear sin HTML (si no hay formato)</button>
+          <button id="clearPaste" class="ghost">Limpiar</button>
+        </div>
+        <div class="hint" style="margin-top:8px">Si tu nota conserva el subrayado, las opciones subrayadas quedarán marcadas como correctas automáticamente.</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Preguntas importadas</strong>
+          <div class="small">Total: <span id="totalCount">0</span></div>
+        </div>
+        <div class="list" id="questionsList">
+          <div class="hint">Aún no hay preguntas. Importa tu nota o crea manualmente.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button id="startBtn">Iniciar Quiz</button>
+          <button id="resetAnswers" class="ghost">Resetear respuestas</button>
+          <div style="margin-left:auto" class="small">Progreso: <span id="answeredCount">0</span>/<span id="totalCount2">0</span></div>
+        </div>
+        <div class="hint" style="margin-top:8px">En modo quiz inmediato, al elegir una opción recibirás feedback al instante.</div>
       </div>
     </section>
 
-    <aside class="card" style="padding:12px">
+    <aside class="right card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <strong>Estudiar</strong>
-        <div class="tiny">Tarjetas: <span id="count">0</span></div>
+        <strong>Panel de estudio</strong>
+        <div class="result-badge">Puntaje: <span id="score">0</span></div>
       </div>
 
-      <div class="study-area">
-        <div class="flash" id="flashcard" role="button" tabindex="0" aria-pressed="false">
-          <div class="meta" id="meta">---</div>
-          <div class="q" id="flashQ">No hay tarjetas</div>
-          <div class="a" id="flashA">Respuesta</div>
+      <div id="quizArea" style="margin-top:12px">
+        <div class="center" style="padding:18px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);min-height:120px">
+          <div class="small">Pulsa "Iniciar Quiz" para comenzar</div>
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
-        <button id="prevBtn" class="ghost">Anterior</button>
-        <button id="knowBtn">Sé ✔</button>
-        <button id="dontKnowBtn" class="ghost">No sé ✖</button>
-        <button id="nextBtn" class="ghost">Siguiente</button>
+      <div style="margin-top:12px" class="controls-bottom">
+        <button id="prevQ" class="ghost">Anterior</button>
+        <button id="nextQ" class="ghost">Siguiente</button>
+        <button id="revealAll" class="ghost">Revelar respuestas</button>
+        <button id="exportResults" class="ghost">Exportar resultados</button>
       </div>
 
-      <div style="margin-top:10px" class="hint">
-        Toque la tarjeta para voltearla. En móvil: deslizar izquierda/derecha marca No sé / Sé.
-      </div>
+      <div style="margin-top:12px" class="hint">Consejo: en iPhone copia la nota con formato (seleccionar todo → compartir → copiar) y pégala aquí.</div>
     </aside>
-  </main>
-
-  <div class="footer">Hecha para estudiar — guarda tus tarjetas en este dispositivo. Exporta si quieres respaldarlas.</div>
+  </div>
 </div>
 
 <script>
-/* App logic en JS (simple y autónomo) */
-const LS_KEY = 'study_cards_v1';
-let cards = [];
-let studyIndex = 0;
-let shuffled = [];
+/* App JS: parse, render quiz, detect <u> or text-decoration:underline */
+const LS_KEY = 'guia_trafico_quiz_v1';
+let questions = []; // {id, q, options:[{key:'a', text, correct}], answeredKey, correct}
+let curIndex = 0;
+
 const $ = id => document.getElementById(id);
+const sanitize = s => (s||'').trim().replace(/\u00A0/g,' ');
 
 function save(){
-  localStorage.setItem(LS_KEY, JSON.stringify(cards));
-  render();
+  localStorage.setItem(LS_KEY, JSON.stringify(questions));
+  updateCounts();
 }
 function load(){
-  try{
-    cards = JSON.parse(localStorage.getItem(LS_KEY)) || [];
-  }catch(e){ cards = []; }
+  try{ questions = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){ questions = []; }
+  updateCounts();
 }
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-function addCard(q,a,cat){
-  if(!q) return;
-  cards.unshift({id:uid(), q:q.trim(), a:(a||'').trim(), category:(cat||'').trim(), known:false, created:Date.now()});
-  save();
+function clearAll(){ if(!confirm('Borrar todas las preguntas guardadas?')) return; questions=[]; save(); renderList(); renderQuizArea(); }
+
+function updateCounts(){
+  $('totalCount').textContent = questions.length;
+  $('totalCount2').textContent = questions.length;
+  const answered = questions.filter(q=>q.answeredKey).length;
+  $('answeredCount').textContent = answered;
+  $('score').textContent = questions.filter(q=>q.answeredKey && q.answeredKey===q.correct).length;
 }
 
-function render(){
-  const list = $('cardsList');
-  list.innerHTML = '';
-  const filter = $('filterCat').value || '';
-  const s = $('search').value.trim().toLowerCase();
-  const visible = cards.filter(c=>{
-    if(filter && c.category !== filter) return false;
-    if(s){
-      return (c.q + ' ' + c.a + ' ' + c.category).toLowerCase().includes(s);
-    }
-    return true;
-  });
-  $('count').textContent = visible.length;
-  if(visible.length===0){
-    list.innerHTML = '<div class="empty">No hay tarjetas. Añade o importa la guía.</div>';
+/* Parsing logic
+   We accept pasted HTML or plain text.
+   Strategy:
+    - If paste contains HTML tags like <u> or <ins> or style="text-decoration", we'll create a DOM and parse blocks starting with a numbered heading.
+    - Split by /^(\d+)[\.\-\)]/m into segments (keep number).
+    - For each segment, separate question text until first option line (a) ...
+    - Option lines detected by regex ^\s*[a-d]\)|^\s*[a-d]\.
+*/
+function parseFromPaste(raw, loose=false){
+  if(!raw || !raw.trim()) { alert('Pega la nota primero.'); return; }
+  // Try to detect HTML-like content
+  const hasHTML = /<\/?[a-z][\s\S]*>/i.test(raw);
+  const container = document.createElement('div');
+  if(hasHTML && !loose){
+    // Use innerHTML to preserve <u> etc.
+    container.innerHTML = raw;
   } else {
-    visible.forEach(c=>{
-      const el = document.createElement('div');
-      el.className = 'card-item '+(c.known? 'known':'unknown');
-      el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="min-width:0"><strong style="display:block;color:#ddf">${escapeHtml(c.q)}</strong><small class="tiny">${escapeHtml(c.category || '')}</small></div>
-        <div style="display:flex;gap:6px">
-          <button class="smallbtn ghost" data-id="${c.id}" data-act="edit">Editar</button>
-          <button class="smallbtn ghost" data-id="${c.id}" data-act="del">Eliminar</button>
-        </div>
-      </div>
-      <div style="margin-top:8px;color:var(--muted);font-size:13px">${escapeHtml(c.a)}</div>
-      <small>${new Date(c.created).toLocaleString()}</small>`;
-      list.appendChild(el);
-    });
+    // Convert plain text to safe HTML by replacing line breaks
+    container.textContent = raw;
   }
-  populateCategories();
-}
 
-function escapeHtml(s){ return s ? s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') : ''; }
+  // Get text with block separators. We'll use original raw split by numbers to preserve formatting.
+  // Normalize line breaks
+  const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Split into question blocks by leading number
+  const blocks = [];
+  const re = /(^|\n)(\s*\d+\s*[\.\-\)]\s*)/g;
+  let lastIndex = 0;
+  let match;
+  const indices = [];
+  while((match = re.exec(normalized)) !== null){
+    indices.push(match.index + match[1].length);
+  }
+  if(indices.length===0){
+    // No numbered items: fallback - split by double newlines
+    const paras = normalized.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean);
+    paras.forEach(p=> blocks.push(p));
+  } else {
+    for(let i=0;i<indices.length;i++){
+      const start = indices[i];
+      const end = indices[i+1] || normalized.length;
+      blocks.push(normalized.slice(start, end).trim());
+    }
+  }
 
-function populateCategories(){
-  const sel = $('filterCat');
-  const cats = Array.from(new Set(cards.map(c=>c.category).filter(Boolean)));
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">Todas las categorías</option>';
-  cats.forEach(cat=>{
-    const o = document.createElement('option'); o.value = cat; o.textContent = cat; sel.appendChild(o);
+  // For each block, parse question and options
+  let created = 0;
+  blocks.forEach(block => {
+    // Create a mini container with HTML if original had HTML and contains this block
+    let htmlFragment = null;
+    if(hasHTML && !loose){
+      // Try to find an element in container whose textContent contains the block's first 30 chars
+      const sample = block.trim().slice(0,40);
+      const all = container.querySelectorAll('*');
+      htmlFragment = null;
+      for(const el of all){
+        if(el.textContent && el.textContent.trim().includes(sample)){
+          // Use outerHTML of the matching parent paragraph/element
+          htmlFragment = el.innerHTML || el.outerHTML;
+          break;
+        }
+      }
+    }
+
+    // Extract question text up to the first option (a) or similar
+    // Split into lines
+    const lines = block.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(lines.length===0) return;
+    // find first line index that starts with a) or a.
+    let optStart = lines.findIndex(l => /^[a-d]\s*[\)\.]/i.test(l));
+    if(optStart === -1){
+      // Maybe options are inline in the same line -- try to find " a) " pattern
+      const inlineMatch = block.match(/\s([a-d])\s*[\)\.]\s*/i);
+      if(inlineMatch){
+        // split by space + letter + ) patterns
+        const parts = block.split(/\s(?=[a-d]\s*[\)\.]\s)/i);
+        // first part is question
+        const qText = sanitize(parts[0].replace(/^\s*\d+\s*[\.\-\)]\s*/,''));
+        const optsText = parts.slice(1).join(' ');
+        // split optsText by letters
+        const optPieces = optsText.split(/(?=[a-d]\s*[\)\.])/i).map(s=>s.trim()).filter(Boolean);
+        const opts = optPieces.map(piece=>{
+          const m = piece.match(/^([a-d])\s*[\)\.]\s*(.*)$/i);
+          if(!m) return null;
+          return {key:m[1].toLowerCase(), raw: m[2].trim()};
+        }).filter(Boolean);
+        if(opts.length>0){
+          const parsed = parseOptionsWithHTML(opts, htmlFragment);
+          addQuestion(qText, parsed);
+          created++;
+          return;
+        }
+      }
+      // else treat whole block as question without options
+      const qOnly = sanitize(block.replace(/^\s*\d+\s*[\.\-\)]\s*/,''));
+      addQuestion(qOnly, []);
+      created++;
+      return;
+    }
+
+    const qLines = lines.slice(0,optStart);
+    const qText = sanitize(qLines.join(' ')).replace(/^\s*\d+\s*[\.\-\)]\s*/,'').trim();
+    const optLines = lines.slice(optStart);
+    // collect options
+    const opts = [];
+    for(const ol of optLines){
+      const m = ol.match(/^([a-d])\s*[\)\.]\s*(.*)$/i);
+      if(m) opts.push({key: m[1].toLowerCase(), raw: m[2].trim(), fullLine: ol});
+      else {
+        // If a line doesn't start with letter, append to last option (multi-line option)
+        if(opts.length>0) opts[opts.length-1].raw += ' ' + ol;
+      }
+    }
+    const parsed = parseOptionsWithHTML(opts, htmlFragment);
+    addQuestion(qText, parsed);
+    created++;
   });
-  if(cats.includes(prev)) sel.value = prev;
+
+  if(created===0) alert('No se detectaron preguntas numeradas. Intenta con "Crear sin HTML" si pegaste texto plano.');
+  else { save(); renderList(); renderQuizArea(); updateCounts(); alert('Importadas ' + created + ' preguntas (revísalas en la lista).'); }
 }
 
-/* Flashcard UI */
-function prepareStudy(shuffle=true){
-  shuffled = cards.slice();
-  if(shuffle) shuffled.sort(()=>Math.random()-0.5);
-  studyIndex = 0;
-  showCurrent();
+/* parseOptionsWithHTML: given array of {key, raw} and optional htmlFragment,
+   try to detect which option contains subrayado using htmlFragment or by checking for _underscores_ */
+function parseOptionsWithHTML(optionObjs, htmlFragment){
+  // If htmlFragment present, try to map raw text to innerHTML parts
+  const result = [];
+  // helper to check if HTML contains underline for a specific piece
+  const containsUnderline = (html, optionText) => {
+    if(!html) return false;
+    // create node
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    // Search for elements that include optionText and have <u> inside or style text-decoration
+    const nodes = tmp.querySelectorAll('*');
+    for(const n of nodes){
+      if(!n.textContent) continue;
+      if(n.textContent.trim().includes(optionText.trim())){
+        // check for <u> inside this node or itself
+        if(n.querySelector && n.querySelector('u')) return true;
+        if(/<u[\s>]/i.test(n.innerHTML)) return true;
+        // check style attribute
+        const st = n.getAttribute && n.getAttribute('style') || '';
+        if(/text-decoration\s*:\s*underline/i.test(st)) return true;
+        // also check for <ins>
+        if(n.querySelector && n.querySelector('ins')) return true;
+      }
+    }
+    // fallback: check raw html string if it contains <u> surrounding option text
+    const regex = new RegExp('<u[^>]*>\\s*' + escapeRegex(optionText.trim().slice(0,30)) , 'i');
+    if(regex.test(html)) return true;
+    return false;
+  };
+
+  for(const o of optionObjs){
+    const text = sanitize(stripHtml(o.raw));
+    let isCorrect = false;
+    // 1) If we have htmlFragment, use it
+    if(htmlFragment && containsUnderline(htmlFragment, o.raw)) isCorrect = true;
+    // 2) If raw itself contains <u> or <ins> or style underline
+    if(/<u[\s>]/i.test(o.raw) || /<ins[\s>]/i.test(o.raw) || /text-decoration\s*:\s*underline/i.test(o.raw)) isCorrect = true;
+    // 3) Underscore notation _text_
+    if(/\_.+\_/.test(o.raw)) isCorrect = true;
+    result.push({ key: o.key, text: text, correct: isCorrect });
+  }
+
+  // If multiple marked correct, keep them (some questions may have multiple). If none marked, correct remains undefined.
+  return result;
 }
 
-function showCurrent(){
-  const fc = $('flashcard'), fq = $('flashQ'), fa = $('flashA'), meta = $('meta');
-  if(!shuffled || shuffled.length===0){
-    fq.textContent = 'No hay tarjetas';
-    fa.textContent = '';
-    meta.textContent = '0';
-    fc.classList.remove('flipped');
+function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function stripHtml(html){ if(!html) return html; const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent || ''; }
+
+function addQuestion(qText, parsedOptions){
+  const qObj = { id: uid(), q: sanitize(qText), options: [], answeredKey: null, correct: null };
+  // If parsedOptions empty => store just text with no options
+  if(parsedOptions && parsedOptions.length){
+    parsedOptions.forEach(p=>{
+      qObj.options.push({ key: p.key, text: p.text, correct: !!p.correct });
+      if(p.correct) qObj.correct = p.key;
+    });
+    // if none marked correct but options exist, leave correct null
+    // if exactly one option has text matching pattern like starts with "<u>" maybe detected above already
+  }
+  questions.push(qObj);
+}
+
+/* Render list of questions (left column) */
+function renderList(){
+  const list = $('questionsList');
+  list.innerHTML = '';
+  if(questions.length===0){
+    list.innerHTML = '<div class="hint">No hay preguntas. Pega tu nota y pulsa "Crear preguntas".</div>';
     return;
   }
-  const cur = shuffled[studyIndex % shuffled.length];
-  fq.textContent = cur.q;
-  fa.textContent = cur.a || '—';
-  meta.textContent = `${studyIndex+1}/${shuffled.length}`;
-  fc.classList.remove('flipped');
-}
+  questions.forEach((q, idx)=>{
+    const el = document.createElement('div');
+    el.className = 'qitem';
+    const header = document.createElement('div');
+    header.className = 'qhead';
+    header.innerHTML = `<strong>${idx+1}. ${escapeHtml(q.q)}</strong>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="meta">Opciones: ${q.options.length}</span>
+        <button class="ghost smallbtn" data-act="remove" data-id="${q.id}">Eliminar</button>
+        <button class="ghost smallbtn" data-act="edit" data-id="${q.id}">Editar</button>
+      </div>`;
+    el.appendChild(header);
 
-/* Events */
-document.addEventListener('click', e=>{
-  const act = e.target.dataset.act;
-  if(act==='del'){ const id=e.target.dataset.id; if(confirm('Eliminar tarjeta?')) { cards = cards.filter(c=>c.id!==id); save(); prepareStudy(); } }
-  if(act==='edit'){ const id=e.target.dataset.id; const c = cards.find(x=>x.id===id); if(!c) return; const newQ = prompt('Editar pregunta', c.q); if(newQ===null) return; const newA = prompt('Editar respuesta/opciones', c.a); if(newA===null) return; const newCat = prompt('Categoría (opcional)', c.category||'') ; c.q=newQ; c.a=newA; c.category=newCat; save(); prepareStudy(); }
-});
-
-$('addBtn').onclick = ()=>{
-  addCard($('qInput').value, $('aInput').value, $('catInput').value);
-  $('qInput').value=''; $('aInput').value=''; $('catInput').value='';
-  prepareStudy();
-};
-$('clearForm').onclick = ()=>{ $('qInput').value=''; $('aInput').value=''; $('catInput').value=''; };
-
-$('bulkParse').onclick = ()=>{ parseBulk(false); };
-$('bulkParseKeepAns').onclick = ()=>{ parseBulk(true); };
-$('clearBulk').onclick = ()=>{ $('bulkInput').value=''; };
-
-$('search').oninput = render;
-$('filterCat').onchange = render;
-
-$('clearAll').onclick = ()=>{ if(confirm('Borrar todas las tarjetas?')){ cards=[]; save(); prepareStudy(); } };
-
-$('toStudy').onclick = ()=>{ prepareStudy(true); window.scrollTo({top:0,behavior:'smooth'}); };
-$('toManage').onclick = ()=>{ window.scrollTo({top:400,behavior:'smooth'}); };
-
-$('exportBtn').onclick = ()=>{
-  const data = JSON.stringify(cards, null, 2);
-  const blob = new Blob([data], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='tarjetas.json'; a.click(); URL.revokeObjectURL(url);
-};
-
-$('importBtn').onclick = ()=>{
-  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
-  inp.onchange = e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      try{
-        const imported = JSON.parse(ev.target.result);
-        if(!Array.isArray(imported)) throw new Error('Formato inválido');
-        imported.forEach(c=>{
-          if(c.q) cards.push({id:uid(), q:c.q, a:c.a||'', category:c.category||'', known:false, created:Date.now()});
-        });
-        save(); prepareStudy();
-        alert('Importado OK');
-      }catch(err){ alert('Error importando: '+err.message); }
-    };
-    reader.readAsText(file);
-  };
-  inp.click();
-};
-
-/* Flashcard interactions */
-const flash = $('flashcard');
-flash.addEventListener('click', ()=> flash.classList.toggle('flipped'));
-document.addEventListener('keydown', (e)=> {
-  if(e.key==='ArrowRight') next();
-  if(e.key==='ArrowLeft') prev();
-  if(e.key===' ') flash.classList.toggle('flipped');
-});
-$('nextBtn').onclick = next;
-$('prevBtn').onclick = prev;
-$('knowBtn').onclick = ()=>{ markKnown(true); next(); };
-$('dontKnowBtn').onclick = ()=>{ markKnown(false); next(); };
-
-function next(){ if(!shuffled.length) return; studyIndex = (studyIndex+1) % shuffled.length; showCurrent(); }
-function prev(){ if(!shuffled.length) return; studyIndex = (studyIndex-1 + shuffled.length) % shuffled.length; showCurrent(); }
-function markKnown(val){
-  if(!shuffled.length) return;
-  const id = shuffled[studyIndex].id;
-  const c = cards.find(x=>x.id===id);
-  if(c){ c.known = !!val; save(); shuffled[studyIndex].known = !!val; render(); }
-}
-
-/* Parse bulk text — tries to split by numbered items like "1.- ..." */
-function parseBulk(keepOptionsAsAnswer){
-  const txt = $('bulkInput').value;
-  if(!txt.trim()){ alert('Pega la guía en el recuadro.'); return; }
-  const lines = txt.split(/\r?\n/);
-  let buffer = '';
-  const items = [];
-  const pushBuffer = ()=>{
-    const t = buffer.trim();
-    if(!t) return;
-    // detect number start
-    const m = t.match(/^\s*\d+\s*[\.\-\)]\s*/);
-    if(m) {
-      // split first sentence as question until a newline or question mark followed by options
-      // We'll try to separate question and options: options usually like "a) ..." lines
-      const parts = t.split(/\n(?=[a-d]\)|^[a-d]\.)/im);
-      let question = parts[0].trim();
-      // If question contains multiple lines, take until options start
-      const rest = parts.slice(1).join('\n').trim();
-      let answer = '';
-      if(keepOptionsAsAnswer){
-        // include options in answer
-        answer = rest || '';
-      } else {
-        answer = rest || '';
-      }
-      // If question contains options on same line, try to cut them
-      const qParts = question.split(/(?=\s[a-d]\)|\s[a-d]\.)/i);
-      if(qParts.length>1){
-        question = qParts[0].trim();
-        if(!answer) answer = qParts.slice(1).join(' ').trim();
-      }
-      // strip leading number from question
-      question = question.replace(/^\s*\d+\s*[\.\-\)]\s*/,'').trim();
-      items.push({q:question, a:answer});
+    if(q.options && q.options.length){
+      const opts = document.createElement('div');
+      opts.className = 'options';
+      q.options.forEach(op=>{
+        const lab = document.createElement('label');
+        lab.className = 'opt';
+        lab.innerHTML = `<div class="opt-key" style="width:24px;font-weight:700;color:var(--muted)">${op.key})</div>
+                         <div class="opt-text">${escapeHtml(op.text)}</div>
+                         <div style="margin-left:8px" class="meta small">${op.correct? '<u>Correcta</u>': ''}</div>`;
+        opts.appendChild(lab);
+      });
+      el.appendChild(opts);
     } else {
-      // if no leading number, create one card per paragraph
-      items.push({q:t, a:''});
+      const noopts = document.createElement('div');
+      noopts.className = 'hint';
+      noopts.textContent = 'Sin opciones (pregunta de texto).';
+      el.appendChild(noopts);
     }
-  };
 
-  for(let line of lines){
-    if(/^\s*\d+\s*[\.\-\)]/.test(line)){
-      if(buffer) { pushBuffer(); buffer = line + '\n'; }
-      else buffer = line + '\n';
-    } else {
-      buffer += line + '\n';
-    }
-  }
-  if(buffer) pushBuffer();
-
-  if(items.length===0){ alert('No se detectaron preguntas numeradas; se crearán por párrafos.'); const paras = txt.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean); paras.forEach(p=>addCard(p,'','')); alert('Importadas '+paras.length+' tarjetas'); save(); prepareStudy(); return; }
-
-  // Add items to cards
-  items.forEach(it=>{
-    // If no answer, try to detect trailing options in it.q (like "¿... a) ... b)...")
-    addCard(it.q, it.a || '', '');
+    list.appendChild(el);
   });
 
-  save();
-  prepareStudy();
-  alert('Importadas ' + items.length + ' tarjetas (revísalas por si hay respuestas faltantes).');
+  // attach events for edit/remove
+  list.querySelectorAll('button[data-act]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const id = btn.dataset.id;
+      const act = btn.dataset.act;
+      if(act==='remove'){
+        if(!confirm('Eliminar esta pregunta?')) return;
+        questions = questions.filter(x=>x.id!==id);
+        save(); renderList(); renderQuizArea();
+      } else if(act==='edit'){
+        // simple edit: prompt for question text (advanced edit could be implemented)
+        const q = questions.find(x=>x.id===id);
+        if(!q) return;
+        const newQ = prompt('Editar pregunta', q.q);
+        if(newQ===null) return;
+        q.q = sanitize(newQ);
+        save(); renderList(); renderQuizArea();
+      }
+    });
+  });
 }
 
-/* Touch swipe to mark known/unknown */
-let touchStartX = null;
-flash.addEventListener('touchstart',(e)=>{ touchStartX = e.touches[0].clientX; }, {passive:true});
-flash.addEventListener('touchend',(e)=>{
-  if(touchStartX===null) return;
-  const endX = (e.changedTouches && e.changedTouches[0].clientX) || touchStartX;
-  const dx = endX - touchStartX;
-  touchStartX = null;
-  if(Math.abs(dx) < 30) return;
-  if(dx > 0){ markKnown(true); next(); } else { markKnown(false); next(); }
-}, {passive:true});
+/* Render main quiz area (right) */
+function renderQuizArea(){
+  const area = $('quizArea');
+  area.innerHTML = '';
+  if(questions.length===0){
+    area.innerHTML = `<div class="center" style="padding:18px;border-radius:10px;min-height:120px"><div class="small">No hay preguntas para el quiz.</div></div>`;
+    updateCounts();
+    return;
+  }
+  // show current question
+  curIndex = Math.min(curIndex, questions.length-1);
+  const q = questions[curIndex];
+  const container = document.createElement('div');
+  container.className = 'qitem';
+  const header = document.createElement('div');
+  header.className = 'qhead';
+  header.innerHTML = `<strong>${curIndex+1}. ${escapeHtml(q.q)}</strong>
+                      <div class="meta">${q.options.length} opciones</div>`;
+  container.appendChild(header);
 
-/* init */
+  // options area
+  const optsWrap = document.createElement('div');
+  optsWrap.className = 'options';
+  if(q.options && q.options.length){
+    q.options.forEach(op=>{
+      const id = `${q.id}_${op.key}`;
+      const lab = document.createElement('label');
+      lab.className = 'opt';
+      if(q.answeredKey){
+        if(op.key === q.correct) lab.classList.add('opt-correct');
+        if(op.key === q.answeredKey && op.key !== q.correct) lab.classList.add('opt-wrong');
+      }
+      lab.innerHTML = `<input type="radio" name="opt_${q.id}" id="${id}" value="${op.key}" ${q.answeredKey? 'disabled': ''} ${q.answeredKey===op.key? 'checked': ''}>
+                       <div class="opt-text">${escapeHtml(op.text)}</div>`;
+      // clicking the label should trigger selection handler
+      lab.querySelector('input').addEventListener('change', ()=>{
+        handleAnswer(q.id, op.key);
+      });
+      optsWrap.appendChild(lab);
+    });
+  } else {
+    const noopts = document.createElement('div');
+    noopts.className = 'hint';
+    noopts.textContent = 'Esta pregunta no tiene opciones.';
+    optsWrap.appendChild(noopts);
+  }
+  container.appendChild(optsWrap);
+
+  // meta / nav
+  const nav = document.createElement('div');
+  nav.style.marginTop = '12px';
+  nav.style.display = 'flex';
+  nav.style.justifyContent = 'space-between';
+  nav.innerHTML = `<div class="meta">Pregunta ${curIndex+1} de ${questions.length}</div>
+                   <div style="display:flex;gap:8px">
+                     <button id="btnMarkDont" class="ghost">Marcar No sé</button>
+                     <button id="btnReveal" class="ghost">Mostrar correcta</button>
+                   </div>`;
+  container.appendChild(nav);
+
+  area.appendChild(container);
+
+  // attach nav events
+  $('prevQ').onclick = ()=>{ if(curIndex>0) { curIndex--; renderQuizArea(); } };
+  $('nextQ').onclick = ()=>{ if(curIndex<questions.length-1) { curIndex++; renderQuizArea(); } };
+  $('btnReveal').onclick = ()=>{ revealCorrect(q.id); };
+  $('btnMarkDont').onclick = ()=>{ if(!q.answeredKey){ q.answeredKey = '__dontknow__'; save(); renderQuizArea(); } };
+  updateCounts();
+}
+
+/* Handle answer selection: immediate feedback */
+function handleAnswer(qid, chosenKey){
+  const q = questions.find(x=>x.id===qid);
+  if(!q) return;
+  if(q.answeredKey) return; // already answered
+  q.answeredKey = chosenKey;
+  // If q.correct is null, try to infer correct from options (if one was marked correct earlier)
+  if(!q.correct){
+    const found = q.options.find(o=>o.correct);
+    if(found) q.correct = found.key;
+  }
+  save();
+  // show feedback: if correct unknown, just mark chosen (we'll highlight on re-render)
+  // But also if q.correct exists, update score
+  renderQuizArea();
+  // small visual feedback alert (avoid intrusive)
+  if(q.correct){
+    if(chosenKey === q.correct){
+      flashMessage('✔ ¡Correcto!', 900, true);
+    } else {
+      const correctText = (q.options.find(o=>o.key===q.correct) || {}).text || 'Respuesta correcta';
+      flashMessage('✖ Incorrecto — correcta: ' + correctText, 1400, false);
+    }
+  } else {
+    flashMessage('Respuesta registrada', 700, false);
+  }
+}
+
+/* reveal correct option for a question id */
+function revealCorrect(qid){
+  const q = questions.find(x=>x.id===qid);
+  if(!q) return;
+  if(!q.correct){
+    // try to find option with correct:true
+    const found = q.options.find(o=>o.correct);
+    if(found) q.correct = found.key;
+  }
+  if(!q.answeredKey) q.answeredKey = '__revealed__';
+  save();
+  renderQuizArea();
+}
+
+/* Utility: show temporary message */
+function flashMessage(text, ms=1000, positive=true){
+  const existing = document.getElementById('flashmsg');
+  if(existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'flashmsg';
+  div.textContent = text;
+  div.style.position='fixed';
+  div.style.left='50%';
+  div.style.transform='translateX(-50%)';
+  div.style.bottom='36px';
+  div.style.padding='10px 14px';
+  div.style.borderRadius='10px';
+  div.style.background = positive? 'linear-gradient(90deg, rgba(6,182,212,0.12), rgba(6,182,212,0.05))' : 'rgba(255,255,255,0.03)';
+  div.style.color = '#e6f7f8';
+  div.style.border = '1px solid rgba(255,255,255,0.04)';
+  div.style.zIndex = 9999;
+  document.body.appendChild(div);
+  setTimeout(()=>{ div.remove(); }, ms);
+}
+
+/* Export / import JSON */
+$('exportBtn').addEventListener('click', ()=>{
+  const data = JSON.stringify(questions, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'preguntas_quiz.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+$('importBtn').addEventListener('click', ()=>{
+  // focus the paste area
+  $('pasteArea').focus();
+  flashMessage('Pega tu nota en el recuadro y pulsa "Crear preguntas".', 1800, true);
+});
+
+$('clearPaste').addEventListener('click', ()=>{ $('pasteArea').value=''; });
+
+$('clearBtn').addEventListener('click', ()=>{ clearAll(); renderList(); renderQuizArea(); });
+
+$('parseBtn').addEventListener('click', ()=>{ parseFromPaste($('pasteArea').value, false); });
+
+$('parseBtnLoose').addEventListener('click', ()=>{ parseFromPaste($('pasteArea').value, true); });
+
+$('startBtn').addEventListener('click', ()=>{
+  if(questions.length===0){ alert('No hay preguntas. Importa primero.'); return; }
+  curIndex = 0;
+  renderQuizArea();
+});
+
+$('resetAnswers').addEventListener('click', ()=>{
+  if(!confirm('Resetear todas las respuestas registradas?')) return;
+  questions.forEach(q=>{ q.answeredKey = null; });
+  save(); renderQuizArea(); updateCounts();
+});
+
+$('shuffleBtn').addEventListener('click', ()=>{
+  if(questions.length<=1){ flashMessage('Pocas preguntas para mezclar.'); return; }
+  // simple shuffle
+  for(let i=questions.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [questions[i], questions[j]] = [questions[j], questions[i]];
+  }
+  save(); renderList(); renderQuizArea(); flashMessage('Preguntas mezcladas', 900, true);
+});
+
+/* Export results (answers) */
+$('exportResults').addEventListener('click', ()=>{
+  const res = questions.map(q=>({ q:q.q, correct:q.correct || null, answered:q.answeredKey || null }));
+  const data = JSON.stringify(res, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'resultados_quiz.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+$('revealAll').addEventListener('click', ()=>{
+  if(!confirm('¿Revelar todas las respuestas correctas?')) return;
+  questions.forEach(q=>{
+    if(!q.correct){
+      const found = q.options.find(o=>o.correct);
+      if(found) q.correct = found.key;
+    }
+    if(!q.answeredKey) q.answeredKey = '__revealed__';
+  });
+  save(); renderQuizArea(); updateCounts();
+});
+
+/* Helpers */
+function escapeHtml(s){ return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* Init load */
 load();
-render();
-prepareStudy(true);
+renderList();
+renderQuizArea();
+updateCounts();
 
 </script>
 </body>
