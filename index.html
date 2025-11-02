@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tarjetas de Estudio</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4;
+    --glass: rgba(255,255,255,0.03);
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, system-ui, Arial; background:linear-gradient(180deg,#071023 0%, #071729 100%); color:#e6eef6}
+  .app{max-width:980px;margin:18px auto;padding:16px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  header h1{font-size:20px;margin:0}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  input[type=text], textarea, select{background:var(--glass);border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px;border-radius:8px;min-width:160px}
+  button{background:linear-gradient(90deg,var(--accent),#7ce5e8);border:none;padding:8px 12px;border-radius:8px;color:#04202a;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+  main{display:grid;grid-template-columns:1fr 360px;gap:12px}
+  @media(max-width:880px){main{grid-template-columns:1fr}}
+  .left{display:flex;flex-direction:column;gap:12px}
+  .form-grid{display:grid;grid-template-columns:1fr 140px;gap:8px}
+  .list{max-height:520px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .card-item{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;flex-direction:column;gap:6px}
+  .card-item small{color:var(--muted);font-size:12px}
+  .study-area{height:320px;display:flex;align-items:center;justify-content:center}
+  .flash{width:100%;max-width:760px;height:320px;border-radius:12px;background:linear-gradient(180deg,#071827,#042136);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;position:relative;text-align:center;cursor:pointer}
+  .flash .q{font-size:18px;margin-bottom:8px}
+  .flash .a{font-size:16px;color:var(--muted);margin-top:6px;display:none}
+  .flash.flipped .a{display:block}
+  .flash.flipped .q{opacity:0.35}
+  .meta{position:absolute;right:12px;top:12px;color:var(--muted);font-size:13px}
+  .tiny{font-size:13px;color:var(--muted)}
+  .bulk{min-height:100px}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .badge{background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:999px;color:var(--muted);font-weight:600}
+  .search{flex:1}
+  .hint{font-size:13px;color:var(--muted)}
+  .footer{margin-top:12px;color:var(--muted);font-size:13px;text-align:center}
+  .smallbtn{padding:6px 8px;border-radius:8px;font-size:13px}
+  .known{border-left:4px solid #10b981}
+  .unknown{border-left:4px solid #ef4444}
+  .empty{color:var(--muted);padding:14px;border-radius:10px;background:rgba(255,255,255,0.02)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="card">
+    <div style="display:flex;flex-direction:column">
+      <h1>Tarjetas de Estudio — Guía de Examen</h1>
+      <small class="hint">Crea, importa (pega tu guía), estudia y guarda en tu dispositivo</small>
+    </div>
+    <div style="margin-left:auto" class="controls">
+      <button id="toStudy">Modo Estudio</button>
+      <button id="toManage" class="ghost">Administrar</button>
+      <button id="exportBtn" class="smallbtn ghost">Exportar JSON</button>
+      <button id="importBtn" class="smallbtn ghost">Importar JSON</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="left">
+      <div class="card">
+        <div class="form-grid">
+          <input id="qInput" type="text" placeholder="Pregunta (ej: 1.- ¿Cuál...?)" />
+          <input id="catInput" type="text" placeholder="Categoría (opcional)" />
+          <textarea id="aInput" rows="2" placeholder="Respuesta / opciones (ej: a) 30 km/hr)"></textarea>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button id="addBtn">Añadir tarjeta</button>
+            <button id="clearForm" class="ghost">Limpiar</button>
+          </div>
+        </div>
+        <div style="margin-top:10px" class="hint">
+          También puedes pegar toda la guía en el recuadro de abajo y usar "Importar guía" para crear tarjetas automáticamente.
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center">
+          <strong>Importar en bloque (pega la guía aquí)</strong>
+          <div style="margin-left:auto" class="tiny">Detecta líneas numeradas</div>
+        </div>
+        <textarea id="bulkInput" class="bulk" placeholder="Pega aquí la guía (todo el texto que compartiste)"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="bulkParse">Importar guía</button>
+          <button id="bulkParseKeepAns" class="ghost">Importar (poner opciones como respuesta)</button>
+          <button id="clearBulk" class="ghost">Borrar</button>
+        </div>
+        <div class="hint" style="margin-top:8px">Nota: tras importar revisa categorías y respuestas.</div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <input id="search" class="search" type="text" placeholder="Buscar..." />
+          <select id="filterCat">
+            <option value="">Todas las categorías</option>
+          </select>
+          <button id="clearAll" class="ghost">Borrar todo</button>
+        </div>
+        <div class="list" id="cardsList"></div>
+      </div>
+    </section>
+
+    <aside class="card" style="padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>Estudiar</strong>
+        <div class="tiny">Tarjetas: <span id="count">0</span></div>
+      </div>
+
+      <div class="study-area">
+        <div class="flash" id="flashcard" role="button" tabindex="0" aria-pressed="false">
+          <div class="meta" id="meta">---</div>
+          <div class="q" id="flashQ">No hay tarjetas</div>
+          <div class="a" id="flashA">Respuesta</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
+        <button id="prevBtn" class="ghost">Anterior</button>
+        <button id="knowBtn">Sé ✔</button>
+        <button id="dontKnowBtn" class="ghost">No sé ✖</button>
+        <button id="nextBtn" class="ghost">Siguiente</button>
+      </div>
+
+      <div style="margin-top:10px" class="hint">
+        Toque la tarjeta para voltearla. En móvil: deslizar izquierda/derecha marca No sé / Sé.
+      </div>
+    </aside>
+  </main>
+
+  <div class="footer">Hecha para estudiar — guarda tus tarjetas en este dispositivo. Exporta si quieres respaldarlas.</div>
+</div>
+
+<script>
+/* App logic en JS (simple y autónomo) */
+const LS_KEY = 'study_cards_v1';
+let cards = [];
+let studyIndex = 0;
+let shuffled = [];
+const $ = id => document.getElementById(id);
+
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify(cards));
+  render();
+}
+function load(){
+  try{
+    cards = JSON.parse(localStorage.getItem(LS_KEY)) || [];
+  }catch(e){ cards = []; }
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function addCard(q,a,cat){
+  if(!q) return;
+  cards.unshift({id:uid(), q:q.trim(), a:(a||'').trim(), category:(cat||'').trim(), known:false, created:Date.now()});
+  save();
+}
+
+function render(){
+  const list = $('cardsList');
+  list.innerHTML = '';
+  const filter = $('filterCat').value || '';
+  const s = $('search').value.trim().toLowerCase();
+  const visible = cards.filter(c=>{
+    if(filter && c.category !== filter) return false;
+    if(s){
+      return (c.q + ' ' + c.a + ' ' + c.category).toLowerCase().includes(s);
+    }
+    return true;
+  });
+  $('count').textContent = visible.length;
+  if(visible.length===0){
+    list.innerHTML = '<div class="empty">No hay tarjetas. Añade o importa la guía.</div>';
+  } else {
+    visible.forEach(c=>{
+      const el = document.createElement('div');
+      el.className = 'card-item '+(c.known? 'known':'unknown');
+      el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="min-width:0"><strong style="display:block;color:#ddf">${escapeHtml(c.q)}</strong><small class="tiny">${escapeHtml(c.category || '')}</small></div>
+        <div style="display:flex;gap:6px">
+          <button class="smallbtn ghost" data-id="${c.id}" data-act="edit">Editar</button>
+          <button class="smallbtn ghost" data-id="${c.id}" data-act="del">Eliminar</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;color:var(--muted);font-size:13px">${escapeHtml(c.a)}</div>
+      <small>${new Date(c.created).toLocaleString()}</small>`;
+      list.appendChild(el);
+    });
+  }
+  populateCategories();
+}
+
+function escapeHtml(s){ return s ? s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') : ''; }
+
+function populateCategories(){
+  const sel = $('filterCat');
+  const cats = Array.from(new Set(cards.map(c=>c.category).filter(Boolean)));
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Todas las categorías</option>';
+  cats.forEach(cat=>{
+    const o = document.createElement('option'); o.value = cat; o.textContent = cat; sel.appendChild(o);
+  });
+  if(cats.includes(prev)) sel.value = prev;
+}
+
+/* Flashcard UI */
+function prepareStudy(shuffle=true){
+  shuffled = cards.slice();
+  if(shuffle) shuffled.sort(()=>Math.random()-0.5);
+  studyIndex = 0;
+  showCurrent();
+}
+
+function showCurrent(){
+  const fc = $('flashcard'), fq = $('flashQ'), fa = $('flashA'), meta = $('meta');
+  if(!shuffled || shuffled.length===0){
+    fq.textContent = 'No hay tarjetas';
+    fa.textContent = '';
+    meta.textContent = '0';
+    fc.classList.remove('flipped');
+    return;
+  }
+  const cur = shuffled[studyIndex % shuffled.length];
+  fq.textContent = cur.q;
+  fa.textContent = cur.a || '—';
+  meta.textContent = `${studyIndex+1}/${shuffled.length}`;
+  fc.classList.remove('flipped');
+}
+
+/* Events */
+document.addEventListener('click', e=>{
+  const act = e.target.dataset.act;
+  if(act==='del'){ const id=e.target.dataset.id; if(confirm('Eliminar tarjeta?')) { cards = cards.filter(c=>c.id!==id); save(); prepareStudy(); } }
+  if(act==='edit'){ const id=e.target.dataset.id; const c = cards.find(x=>x.id===id); if(!c) return; const newQ = prompt('Editar pregunta', c.q); if(newQ===null) return; const newA = prompt('Editar respuesta/opciones', c.a); if(newA===null) return; const newCat = prompt('Categoría (opcional)', c.category||'') ; c.q=newQ; c.a=newA; c.category=newCat; save(); prepareStudy(); }
+});
+
+$('addBtn').onclick = ()=>{
+  addCard($('qInput').value, $('aInput').value, $('catInput').value);
+  $('qInput').value=''; $('aInput').value=''; $('catInput').value='';
+  prepareStudy();
+};
+$('clearForm').onclick = ()=>{ $('qInput').value=''; $('aInput').value=''; $('catInput').value=''; };
+
+$('bulkParse').onclick = ()=>{ parseBulk(false); };
+$('bulkParseKeepAns').onclick = ()=>{ parseBulk(true); };
+$('clearBulk').onclick = ()=>{ $('bulkInput').value=''; };
+
+$('search').oninput = render;
+$('filterCat').onchange = render;
+
+$('clearAll').onclick = ()=>{ if(confirm('Borrar todas las tarjetas?')){ cards=[]; save(); prepareStudy(); } };
+
+$('toStudy').onclick = ()=>{ prepareStudy(true); window.scrollTo({top:0,behavior:'smooth'}); };
+$('toManage').onclick = ()=>{ window.scrollTo({top:400,behavior:'smooth'}); };
+
+$('exportBtn').onclick = ()=>{
+  const data = JSON.stringify(cards, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='tarjetas.json'; a.click(); URL.revokeObjectURL(url);
+};
+
+$('importBtn').onclick = ()=>{
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange = e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      try{
+        const imported = JSON.parse(ev.target.result);
+        if(!Array.isArray(imported)) throw new Error('Formato inválido');
+        imported.forEach(c=>{
+          if(c.q) cards.push({id:uid(), q:c.q, a:c.a||'', category:c.category||'', known:false, created:Date.now()});
+        });
+        save(); prepareStudy();
+        alert('Importado OK');
+      }catch(err){ alert('Error importando: '+err.message); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+};
+
+/* Flashcard interactions */
+const flash = $('flashcard');
+flash.addEventListener('click', ()=> flash.classList.toggle('flipped'));
+document.addEventListener('keydown', (e)=> {
+  if(e.key==='ArrowRight') next();
+  if(e.key==='ArrowLeft') prev();
+  if(e.key===' ') flash.classList.toggle('flipped');
+});
+$('nextBtn').onclick = next;
+$('prevBtn').onclick = prev;
+$('knowBtn').onclick = ()=>{ markKnown(true); next(); };
+$('dontKnowBtn').onclick = ()=>{ markKnown(false); next(); };
+
+function next(){ if(!shuffled.length) return; studyIndex = (studyIndex+1) % shuffled.length; showCurrent(); }
+function prev(){ if(!shuffled.length) return; studyIndex = (studyIndex-1 + shuffled.length) % shuffled.length; showCurrent(); }
+function markKnown(val){
+  if(!shuffled.length) return;
+  const id = shuffled[studyIndex].id;
+  const c = cards.find(x=>x.id===id);
+  if(c){ c.known = !!val; save(); shuffled[studyIndex].known = !!val; render(); }
+}
+
+/* Parse bulk text — tries to split by numbered items like "1.- ..." */
+function parseBulk(keepOptionsAsAnswer){
+  const txt = $('bulkInput').value;
+  if(!txt.trim()){ alert('Pega la guía en el recuadro.'); return; }
+  const lines = txt.split(/\r?\n/);
+  let buffer = '';
+  const items = [];
+  const pushBuffer = ()=>{
+    const t = buffer.trim();
+    if(!t) return;
+    // detect number start
+    const m = t.match(/^\s*\d+\s*[\.\-\)]\s*/);
+    if(m) {
+      // split first sentence as question until a newline or question mark followed by options
+      // We'll try to separate question and options: options usually like "a) ..." lines
+      const parts = t.split(/\n(?=[a-d]\)|^[a-d]\.)/im);
+      let question = parts[0].trim();
+      // If question contains multiple lines, take until options start
+      const rest = parts.slice(1).join('\n').trim();
+      let answer = '';
+      if(keepOptionsAsAnswer){
+        // include options in answer
+        answer = rest || '';
+      } else {
+        answer = rest || '';
+      }
+      // If question contains options on same line, try to cut them
+      const qParts = question.split(/(?=\s[a-d]\)|\s[a-d]\.)/i);
+      if(qParts.length>1){
+        question = qParts[0].trim();
+        if(!answer) answer = qParts.slice(1).join(' ').trim();
+      }
+      // strip leading number from question
+      question = question.replace(/^\s*\d+\s*[\.\-\)]\s*/,'').trim();
+      items.push({q:question, a:answer});
+    } else {
+      // if no leading number, create one card per paragraph
+      items.push({q:t, a:''});
+    }
+  };
+
+  for(let line of lines){
+    if(/^\s*\d+\s*[\.\-\)]/.test(line)){
+      if(buffer) { pushBuffer(); buffer = line + '\n'; }
+      else buffer = line + '\n';
+    } else {
+      buffer += line + '\n';
+    }
+  }
+  if(buffer) pushBuffer();
+
+  if(items.length===0){ alert('No se detectaron preguntas numeradas; se crearán por párrafos.'); const paras = txt.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean); paras.forEach(p=>addCard(p,'','')); alert('Importadas '+paras.length+' tarjetas'); save(); prepareStudy(); return; }
+
+  // Add items to cards
+  items.forEach(it=>{
+    // If no answer, try to detect trailing options in it.q (like "¿... a) ... b)...")
+    addCard(it.q, it.a || '', '');
+  });
+
+  save();
+  prepareStudy();
+  alert('Importadas ' + items.length + ' tarjetas (revísalas por si hay respuestas faltantes).');
+}
+
+/* Touch swipe to mark known/unknown */
+let touchStartX = null;
+flash.addEventListener('touchstart',(e)=>{ touchStartX = e.touches[0].clientX; }, {passive:true});
+flash.addEventListener('touchend',(e)=>{
+  if(touchStartX===null) return;
+  const endX = (e.changedTouches && e.changedTouches[0].clientX) || touchStartX;
+  const dx = endX - touchStartX;
+  touchStartX = null;
+  if(Math.abs(dx) < 30) return;
+  if(dx > 0){ markKnown(true); next(); } else { markKnown(false); next(); }
+}, {passive:true});
+
+/* init */
+load();
+render();
+prepareStudy(true);
+
+</script>
+</body>
+</html>
